@@ -14,6 +14,11 @@ class Dish(models.Model):
     eco = models.BooleanField("ЭКО", default=False)
     price = models.PositiveIntegerField("Цена")
 
+    class Meta:
+        ordering = ('title',)
+        verbose_name = 'Продукт'
+        verbose_name_plural = 'Продукты'
+
     def __str__(self):
         return self.title
 
@@ -25,6 +30,11 @@ class User(models.Model):
     vegan = models.BooleanField("Веганское", default=False)
     eco = models.BooleanField("ЭКО", default=False)
     price = models.PositiveIntegerField("Цена", default=2147483647)
+
+    class Meta:
+        ordering = ('user_name',)
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
 
     def __str__(self):
         return self.user_name
