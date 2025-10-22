@@ -7,6 +7,8 @@ class Dish(models.Model):
     title = models.CharField(("Название блюда"), max_length=50)
     description = models.TextField("Описание", blank=True, default="")
     image = models.ImageField(("Изображение"), blank=True, null=True)
+    ingredients = models.TextField("Продукты")
+    recipe = models.TextField("Рецепт")
     gluten_free = models.BooleanField(("Без глютена"), default=False)
     vegan = models.BooleanField(("Веганское"), default=False)
     eco = models.BooleanField(("ЭКО"), default=False)
