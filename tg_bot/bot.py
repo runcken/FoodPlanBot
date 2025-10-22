@@ -8,7 +8,7 @@ def get_dish(chat_id):
         gluten_free=user.gluten_free,
         vegan=user.vegan,
         eco=user.eco,
-        price_lte=user.price,
+        price__lte=user.price,
     )
     return random.choice(filtered_dishes)
 
