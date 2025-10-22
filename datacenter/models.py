@@ -4,7 +4,7 @@ from django.db import models
 
 
 class Dish(models.Model):
-    title = models.CharField("Название блюда", max_length=50)
+    title = models.CharField("Название блюда", max_length=100)
     description = models.TextField("Описание", blank=True, default="")
     image = models.ImageField("Изображение", blank=True, null=True)
     ingredients = models.TextField("Продукты")
