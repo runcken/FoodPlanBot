@@ -1,6 +1,18 @@
 from datacenter.models import Dish, User
 import random
 
+def set_user_price(chat_id, price):
+    """
+    Устанавливает максимальную цену для пользователя
+    """
+    try:
+        user = User.objects.get(chat_id=str(chat_id))
+        user.price = price
+        user.save()
+        return True
+    except User.DoesNotExist:
+        return False
+
 def toggle_user_preference(chat_id, preference_type):
     """
     Функция для переключения ограничения пользователя
