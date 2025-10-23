@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Dish(models.Model):
     title = models.CharField("Название блюда", max_length=100)
     description = models.TextField("Описание", blank=True, default="")
@@ -76,4 +77,3 @@ class DishProduct(models.Model):
     def price(self):
         """Цена ингредиента по массе"""
         return self.product.price * self.quantity // 100
-

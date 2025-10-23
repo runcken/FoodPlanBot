@@ -1,14 +1,17 @@
 from django.contrib import admin
-from .models import Dish, User, DishProduct,Product
+from .models import Dish, User, DishProduct, Product
+
 
 class DishProductInline(admin.TabularInline):
     model = DishProduct
     extra = 1
 
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = ['name', 'price']
     search_fields = ['name']
+
 
 @admin.register(Dish)
 class DishAdmin(admin.ModelAdmin):
@@ -24,8 +27,9 @@ class DishAdmin(admin.ModelAdmin):
         dish.price = total
         dish.save(update_fields=['price'])
 
+
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ['user_name', 'chat_id', 'gluten_free', 'vegan', 'eco', 'price' ]
+    list_display = ['user_name', 'chat_id', 'gluten_free', 'vegan', 'eco', 'price']
     list_filter = ['gluten_free', 'vegan', 'eco']
     search_fields = ['user_name', 'gluten_free', 'vegan', 'eco', 'chat_id']
