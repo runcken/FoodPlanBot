@@ -5,7 +5,6 @@ class Dish(models.Model):
     title = models.CharField("Название блюда", max_length=100)
     description = models.TextField("Описание", blank=True, default="")
     image = models.ImageField("Изображение", blank=True, null=True)
-    ingredients = models.TextField("Продукты", blank=True, null=True)
     gluten_free = models.BooleanField("Без глютена", default=False)
     vegan = models.BooleanField("Веганское", default=False)
     eco = models.BooleanField("ЭКО", default=False)
@@ -64,6 +63,7 @@ class DishProduct(models.Model):
         verbose_name='Продукт'
     )
     quantity = models.PositiveIntegerField(default=0, verbose_name='Масса в граммах')
+    note = models.CharField("Примечание", max_length=100, default="", blank=True)
 
     class Meta:
         ordering = ('dish',)
