@@ -19,6 +19,7 @@ class DishAdmin(admin.ModelAdmin):
     list_filter = ['gluten_free', 'vegan', 'eco',]
     search_fields = ['title', 'description',]
     inlines = (DishProductInline,)
+    readonly_fields = ['price']
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)

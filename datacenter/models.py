@@ -27,7 +27,7 @@ class User(models.Model):
     gluten_free = models.BooleanField("Без глютена", default=False)
     vegan = models.BooleanField("Веганское", default=False)
     eco = models.BooleanField("ЭКО", default=False)
-    price = models.PositiveIntegerField("Цена", default=2147483647)
+    price = models.PositiveIntegerField("Цена", blank=True, null=True)
 
     class Meta:
         ordering = ('user_name',)
