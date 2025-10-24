@@ -92,13 +92,15 @@ def get_dish_products(dish):
     """Получает список продуктов для блюда"""
     dish_products = DishProduct.objects.filter(dish=dish)
     products_text = "🛒 *Продукты для этого блюда:*\n\n"
-    
+
     for dp in dish_products:
-        products_text += f"• {dp.product.name} - {dp.quantity}г"
-        if dp.note:
-            products_text += f" ({dp.note})"
+        if dp.quantity > 0:
+            products_text += f"• {dp.product.name} - {dp.quantity}г"
+            if dp.note:
+                products_text += f" ({dp.note})"
+        if dp.quantity == 0:
+            products_text += f"• {dp.product.name} - {dp.note}"
         products_text += "\n"
-    
     return products_text
 
 
