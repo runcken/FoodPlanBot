@@ -59,12 +59,18 @@ def toggle_user_preference(chat_id, preference_type):
 
 def get_dish(chat_id):
     user = User.objects.get(chat_id=chat_id)
-    filtered_dishes = Dish.objects.filter(
-        gluten_free=user.gluten_free,
-        vegan=user.vegan,
-        eco=user.eco,
-        price__lte=user.price,
-    )
+    vegan = user.vegan
+    eco = user.eco
+    gluten_free = user.gluten_free
+
+    filtered_dishes = Dish.objects.filter(price__lte=user.price)
+    if vegan:
+        filtered_dishes = filtered_dishes.filter(vegan=vegan)
+    if eco:
+        filtered_dishes = filtered_dishes.filter(eco=eco)
+    if gluten_free:
+        filtered_dishes = filtered_dishes.filter(gluten_free=gluten_free)
+
     if filtered_dishes.exists():
         return random.choice(filtered_dishes)
     else:
