@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from .models import Dish, User, DishProduct, Product
 
 
@@ -19,7 +20,13 @@ class DishAdmin(admin.ModelAdmin):
     list_filter = ['gluten_free', 'vegan', 'eco',]
     search_fields = ['title', 'description',]
     inlines = (DishProductInline,)
-    readonly_fields = ['price']
+    readonly_fields = ['price', 'image_preview']
+    
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" width="100" />', obj.image.url)
+        return "Нет изображения"
+    image_preview.short_description = "Фото"
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
