@@ -74,15 +74,15 @@ def get_dish(chat_id):
 def format_dish_main(dish):
     """Форматирует основную информацию о блюде"""
     message = f"🍽 *{dish.title}*\n\n"
-    
+
     if dish.description:
         message += f"📝 *Описание:* {dish.description}\n\n"
-    
+
     message += "⚡ *Характеристики:*\n"
     message += f"   • Без глютена: {'✅' if dish.gluten_free else '❌'}\n"
     message += f"   • Веганское: {'✅' if dish.vegan else '❌'}\n"
     message += f"   • ЭКО: {'✅' if dish.eco else '❌'}\n\n"
-    
+
     message += f"💰 *Цена:* {dish.price} руб."
 
     return message
@@ -107,16 +107,16 @@ def get_dish_products(dish):
 def get_dish_keyboard(dish_id=None):
     """Создает клавиатуру для сообщения с блюдом"""
     keyboard = types.InlineKeyboardMarkup(row_width=2)
-    
+
     next_button = types.InlineKeyboardButton("🎲 Следующее блюдо", callback_data="next_dish")
     products_button = types.InlineKeyboardButton("🛒 Продукты", callback_data=f"products_{dish_id}")
     recipe_button = types.InlineKeyboardButton("📖 Рецепт", callback_data=f"recipe_{dish_id}")
     menu_button = types.InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")
-    
+
     keyboard.add(next_button)
     keyboard.add(products_button, recipe_button)
     keyboard.add(menu_button)
-    
+
     return keyboard
 
 
@@ -131,25 +131,25 @@ def get_back_to_dish_keyboard(dish_id):
 def get_main_menu_keyboard(chat_id):
     """Создает клавиатуру главного меню с информацией о текущем бюджете"""
     user = User.objects.get(chat_id=str(chat_id))
-    
+
     # Получаем текущий бюджет пользователя
     current_budget = user.price
     budget_text = "не ограничен" if current_budget == 2147483647 else f"{current_budget}₽"
-    
+
     keyboard = types.InlineKeyboardMarkup(row_width=2)
-    
+
     # Кнопка случайного блюда
     random_dish_button = types.InlineKeyboardButton("🎲 Случайное блюдо", callback_data="show_random_dish")
-    
+
     # Кнопки меню
     budget_button = types.InlineKeyboardButton("💰 Установить бюджет", callback_data="set_budget")
     filters_button = types.InlineKeyboardButton("⚙️ Фильтры", callback_data="filters")
-    
+
     # Собираем клавиатуру
     keyboard.add(random_dish_button)
     keyboard.add(budget_button)
     keyboard.add(filters_button)
-    
+
     return keyboard, budget_text
 
 
@@ -175,14 +175,14 @@ def run():
             dish = get_dish(chat_id)
             dish_message = format_dish_main(dish)
             keyboard = get_dish_keyboard(dish.id)
-            
+
             # Если есть изображение, отправляем его с подписью
             if dish.image:
                 try:
                     bot.send_photo(
-                        chat_id, 
-                        dish.image, 
-                        caption=dish_message, 
+                        chat_id,
+                        dish.image,
+                        caption=dish_message,
                         parse_mode='Markdown',
                         reply_markup=keyboard
                     )
@@ -190,25 +190,25 @@ def run():
                     print(f"Photo send error: {photo_error}")
                     # Если не удалось отправить фото, отправляем текстовое сообщение
                     bot.send_message(
-                        chat_id, 
-                        dish_message, 
+                        chat_id,
+                        dish_message,
                         parse_mode='Markdown',
                         reply_markup=keyboard
                     )
             else:
                 bot.send_message(
-                    chat_id, 
-                    dish_message, 
+                    chat_id,
+                    dish_message,
                     parse_mode='Markdown',
                     reply_markup=keyboard
                 )
-                
+
         except Exception as e:
             print(f"Error: {e}")
             # Получаем текущий бюджет для информативного сообщения
             user = User.objects.get(chat_id=str(chat_id))
             budget_text = "не ограничен" if user.price == 2147483647 else f"{user.price}₽"
-            
+
             error_message = f"😔 К сожалению, не удалось найти подходящее блюдо.\n\n"
             error_message += f"*Текущие настройки:*\n"
             error_message += f"• Бюджет: {budget_text}\n"
@@ -216,10 +216,10 @@ def run():
             error_message += f"• Веганское: {'✅' if user.vegan else '❌'}\n"
             error_message += f"• ЭКО: {'✅' if user.eco else '❌'}\n\n"
             error_message += "Попробуйте изменить фильтры или бюджет."
-            
+
             keyboard, _ = get_main_menu_keyboard(chat_id)
             bot.send_message(
-                chat_id, 
+                chat_id,
                 error_message,
                 parse_mode='Markdown',
                 reply_markup=keyboard
@@ -234,19 +234,19 @@ def run():
     def show_products_handler(call: types.CallbackQuery):
         chat_id = call.message.chat.id
         dish_id = call.data.split("_")[1]
-        
+
         try:
             dish = Dish.objects.get(id=dish_id)
             products_message = get_dish_products(dish)
             keyboard = get_back_to_dish_keyboard(dish.id)
-            
+
             bot.send_message(
                 chat_id,
                 products_message,
                 parse_mode='Markdown',
                 reply_markup=keyboard
             )
-            
+
         except Dish.DoesNotExist:
             bot.send_message(chat_id, "❌ Блюдо не найдено.")
 
@@ -254,19 +254,19 @@ def run():
     def show_recipe_handler(call: types.CallbackQuery):
         chat_id = call.message.chat.id
         dish_id = call.data.split("_")[1]
-        
+
         try:
             dish = Dish.objects.get(id=dish_id)
             recipe_message = f"📖 *Рецепт {dish.title}:*\n\n{dish.recipe}"
             keyboard = get_back_to_dish_keyboard(dish.id)
-            
+
             bot.send_message(
                 chat_id,
                 recipe_message,
                 parse_mode='Markdown',
                 reply_markup=keyboard
             )
-            
+
         except Dish.DoesNotExist:
             bot.send_message(chat_id, "❌ Блюдо не найдено.")
 
@@ -274,12 +274,12 @@ def run():
     def back_to_dish_handler(call: types.CallbackQuery):
         chat_id = call.message.chat.id
         dish_id = call.data.split("_")[3]  # back_to_dish_{id}
-        
+
         try:
             dish = Dish.objects.get(id=dish_id)
             dish_message = format_dish_main(dish)
             keyboard = get_dish_keyboard(dish.id)
-            
+
             # Редактируем текущее сообщение
             bot.edit_message_text(
                 chat_id=chat_id,
@@ -288,7 +288,7 @@ def run():
                 parse_mode='Markdown',
                 reply_markup=keyboard
             )
-            
+
         except Dish.DoesNotExist:
             bot.send_message(chat_id, "❌ Блюдо не найдено.")
         except Exception as e:
@@ -304,15 +304,15 @@ def run():
     @bot.callback_query_handler(func=lambda call: call.data == "set_budget")
     def set_budget_handler(call: types.CallbackQuery):
         chat_id = call.message.chat.id
-        
+
         # Устанавливаем состояние ожидания ввода бюджета
         user_states[chat_id] = "waiting_for_budget"
-        
+
         # Отправляем сообщение с инструкцией
         keyboard = types.InlineKeyboardMarkup()
         cancel_button = types.InlineKeyboardButton("❌ Отмена", callback_data="cancel_budget")
         keyboard.add(cancel_button)
-        
+
         bot.send_message(
             chat_id,
             "💰 *Установите бюджет*\n\nВведите сумму в рублях, которую вы готовы потратить на блюдо.\n\nНапример: 500, 1000, 1500",
@@ -323,11 +323,11 @@ def run():
     @bot.callback_query_handler(func=lambda call: call.data == "cancel_budget")
     def cancel_budget_handler(call: types.CallbackQuery):
         chat_id = call.message.chat.id
-        
+
         # Сбрасываем состояние
         if chat_id in user_states:
             del user_states[chat_id]
-        
+
         # Возвращаем в главное меню
         keyboard, budget_text = get_main_menu_keyboard(chat_id)
         menu_text = f"🍽 *Главное меню*\n\n💰 Текущий бюджет: {budget_text}"
@@ -353,27 +353,27 @@ def run():
     def handle_budget_input(message):
         chat_id = message.chat.id
         user_input = message.text.strip()
-        
+
         # Сбрасываем состояние
         del user_states[chat_id]
-        
+
         # Проверяем ввод
         try:
             # Убираем возможные нечисловые символы, кроме цифр
             budget = int(''.join(filter(str.isdigit, user_input)))
-            
+
             if budget <= 0:
                 bot.send_message(chat_id, "❌ Бюджет должен быть положительным числом.")
                 return
-            
+
             # Устанавливаем бюджет
             set_user_price(chat_id, budget)
-            
+
             # Показываем обновленное главное меню
             keyboard, budget_text = get_main_menu_keyboard(chat_id)
             menu_text = f"🍽 *Главное меню*\n\n✅ Бюджет установлен: {budget}₽"
             bot.send_message(chat_id, menu_text, parse_mode='Markdown', reply_markup=keyboard)
-            
+
         except ValueError:
             bot.send_message(chat_id, "❌ Пожалуйста, введите корректную сумму. Например: 500, 1000, 1500")
 
@@ -388,7 +388,7 @@ def run():
         chat_id = call.message.chat.id
         keyboard, budget_text = get_main_menu_keyboard(chat_id)
         menu_text = f"🍽 *Главное меню*\n\n💰 Текущий бюджет: {budget_text}"
-        
+
         try:
             bot.edit_message_text(
                 chat_id=chat_id,
@@ -424,29 +424,29 @@ def run():
     def set_budget_command(message: types.Message):
         chat_id = message.chat.id
         user_input = message.text.replace("/set_budget", "").strip()
-        
+
         if not user_input:
             # Если бюджет не указан, переходим в режим ввода
             set_budget_handler(type('Callback', (), {'message': type('Message', (), {'chat': type('Chat', (), {'id': chat_id})})})())
         return
-        
+
         # Проверяем ввод
         try:
             # Убираем возможные нечисловые символы, кроме цифр
             budget = int(''.join(filter(str.isdigit, user_input)))
-            
+
             if budget <= 0:
                 bot.send_message(chat_id, "❌ Бюджет должен быть положительным числом.")
                 return
-            
+
             # Устанавливаем бюджет
             set_user_price(chat_id, budget)
-            
+
             # Показываем обновленное главное меню
             keyboard, budget_text = get_main_menu_keyboard(chat_id)
             menu_text = f"🍽 *Главное меню*\n\n✅ Бюджет установлен: {budget}₽"
             bot.send_message(chat_id, menu_text, parse_mode='Markdown', reply_markup=keyboard)
-            
+
         except ValueError:
             bot.send_message(chat_id, "❌ Пожалуйста, введите корректную сумму. Например: /set_budget 500")
 
