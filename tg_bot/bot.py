@@ -3,6 +3,7 @@ import random
 import dotenv
 import os
 import telebot
+from telebot import types
 
 
 def add_new_user(message):
@@ -24,6 +25,12 @@ def set_user_price(chat_id, price):
         return True
     except User.DoesNotExist:
         return False
+
+
+def get_budget(message):
+    chat_id = message.chat.id
+    user = User.objects.get(chat_id=chat_id)
+    return user.price
 
 
 def toggle_user_preference(chat_id, preference_type):
@@ -72,6 +79,31 @@ def run():
         chat_id = message.from_user.id
         add_new_user(message)
         bot.send_message(chat_id, welcome_message)
+
+    @bot.message_handler(commands=['set_budget'])
+    def set_budget(message):
+        user_message = message.text
+        chat_id = message.chat.id
+        try:
+            budget = int(user_message.replace("/set_budget", ""))
+        except ValueError:
+            bot.send_message(chat_id, "Бюджет должен быть целым, положительным числом, без лишних символов!")
+            return
+        if budget < 0:
+            bot.send_message(chat_id, "Бюджет не может быть отрицательным!")
+            return
+        set_user_price(chat_id, budget)
+        bot.send_message(chat_id, f"Ваш новый бюджет: {budget} рублей.")
+
+    @bot.message_handler(commands=['budget'])
+    def check_budget(message):
+        chat_id = message.chat.id
+        budget = get_budget(message)
+        const_part = "Чтобы изменить бюджет, введите /set_budget (ваш бюджет)."
+        if budget == 2147483647:
+            bot.send_message(chat_id, f"Ваш бюджет не ограничен. {const_part}")
+            return
+        bot.send_message(chat_id, f"Ваш бюджет составляет {budget} рублей. {const_part}")
 
     error_message = "Извините, я вас не понял 😔 Пожалуйста, используйте кнопки меню или введите команду /menu."
 
