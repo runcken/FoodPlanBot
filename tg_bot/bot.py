@@ -74,26 +74,36 @@ def run():
     bot = telebot.TeleBot(token)
     welcome_message = "🍽️ Добро пожаловать в FoodPlan!\nМы поможем вам выбрать, что приготовить сегодня — вкусно, просто и с пользой 💚\nНачнём с подбора блюда?"
 
+    start_menu_keyboard = types.InlineKeyboardMarkup()
+    menu_button = types.InlineKeyboardButton("Меню", callback_data="main_menu")
+
+    start_menu_keyboard.add(menu_button)
+
+    @bot.callback_query_handler(func=lambda call: call.data == "main_menu")
+    def menu_button_handler(call: types.CallbackQuery):
+        message = call.message
+        bot.edit_message_text("Меню:", message.chat.id, message.id, reply_markup=menu_keyboard)
+
     @bot.message_handler(commands=['start',])
     def send_welcome(message: types.Message):
         chat_id = message.from_user.id
         add_new_user(message)
-        bot.send_message(chat_id, welcome_message)
+        bot.send_message(chat_id, welcome_message, reply_markup=start_menu_keyboard)
 
-    keyboard = types.InlineKeyboardMarkup()
+    menu_keyboard = types.InlineKeyboardMarkup()
 
     start_button = types.InlineKeyboardButton("start_search", callback_data="start")
     settings_buttons = [
         types.InlineKeyboardButton("Фильтры", callback_data="filters"),
         types.InlineKeyboardButton("Бюджет", callback_data="budget"),
     ]
-    keyboard.add(start_button)
-    keyboard.add(*settings_buttons)
+    menu_keyboard.add(start_button)
+    menu_keyboard.add(*settings_buttons)
 
     @bot.message_handler(commands=['menu'])
     def send_menu(message: types.Message):
         chat_id = message.chat.id
-        bot.send_message(chat_id, "Меню:", reply_markup=keyboard)
+        bot.send_message(chat_id, "Меню:", reply_markup=menu_keyboard)
 
     @bot.callback_query_handler(func=lambda call: True)
     def callback_query(call: types.CallbackQuery):
@@ -124,17 +134,17 @@ def run():
     def check_budget(message: types.Message):
         chat_id = message.chat.id
         budget = get_budget(message)
-        const_part = "Чтобы изменить бюджет, введите /set_budget (ваш бюджет)."
+        const_part = "Чтобы изменить бюджет, введите <code>/set_budget (ваш бюджет)</code>."
         if budget == 2147483647:
-            bot.send_message(chat_id, f"Ваш бюджет не ограничен. {const_part}")
+            bot.send_message(chat_id, f"Ваш бюджет не ограничен. {const_part}", parse_mode='HTML')
             return
-        bot.send_message(chat_id, f"Ваш бюджет составляет {budget} рублей. {const_part}")
+        bot.send_message(chat_id, f"Ваш бюджет составляет {budget} рублей. {const_part}", parse_mode='HTML')
 
     error_message = "Извините, я вас не понял 😔 Пожалуйста, используйте кнопки меню или введите команду /menu."
 
     @bot.message_handler()
     def handle_text_message(message: types.Message):
         if not message.text.startswith('/'):
-            bot.send_message(message.chat.id, error_message)
+            bot.send_message(message.chat.id, error_message, reply_markup=start_menu_keyboard)
 
     bot.infinity_polling()
