@@ -75,7 +75,7 @@ def run():
     welcome_message = "🍽️ Добро пожаловать в FoodPlan!\nМы поможем вам выбрать, что приготовить сегодня — вкусно, просто и с пользой 💚\nНачнём с подбора блюда?"
 
     @bot.message_handler(commands=['start',])
-    def send_welcome(message):
+    def send_welcome(message: types.Message):
         chat_id = message.from_user.id
         add_new_user(message)
         bot.send_message(chat_id, welcome_message)
@@ -91,13 +91,17 @@ def run():
     keyboard.add(*settings_buttons)
 
     @bot.message_handler(commands=['menu'])
-    def send_menu(message):
+    def send_menu(message: types.Message):
         chat_id = message.chat.id
         bot.send_message(chat_id, "Меню:", reply_markup=keyboard)
 
-    
+    @bot.callback_query_handler(func=lambda call: True)
+    def callback_query(call: types.CallbackQuery):
+        if call.data == "budget":
+            check_budget(call.message)
+
     @bot.message_handler(commands=['set_budget'])
-    def set_budget(message):
+    def set_budget(message: types.Message):
         user_message = message.text
         chat_id = message.chat.id
         try:
@@ -112,7 +116,7 @@ def run():
         bot.send_message(chat_id, f"Ваш новый бюджет: {budget} рублей.")
 
     @bot.message_handler(commands=['budget'])
-    def check_budget(message):
+    def check_budget(message: types.Message):
         chat_id = message.chat.id
         budget = get_budget(message)
         const_part = "Чтобы изменить бюджет, введите /set_budget (ваш бюджет)."
@@ -124,7 +128,7 @@ def run():
     error_message = "Извините, я вас не понял 😔 Пожалуйста, используйте кнопки меню или введите команду /menu."
 
     @bot.message_handler()
-    def handle_text_message(message):
+    def handle_text_message(message: types.Message):
         if not message.text.startswith('/'):
             bot.send_message(message.chat.id, error_message)
 
