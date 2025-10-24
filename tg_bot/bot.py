@@ -97,8 +97,13 @@ def run():
 
     @bot.callback_query_handler(func=lambda call: True)
     def callback_query(call: types.CallbackQuery):
+        chat_id = call.message.chat.id
         if call.data == "budget":
             check_budget(call.message)
+        if call.data == "start":
+            bot.send_message(chat_id, "Эта кнопка ещё не завершена")
+        if call.data == "filters":
+            bot.send_message(chat_id, "Эта кнопка ещё не завершена")
 
     @bot.message_handler(commands=['set_budget'])
     def set_budget(message: types.Message):
