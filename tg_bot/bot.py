@@ -80,6 +80,22 @@ def run():
         add_new_user(message)
         bot.send_message(chat_id, welcome_message)
 
+    keyboard = types.InlineKeyboardMarkup()
+
+    start_button = types.InlineKeyboardButton("start_search", callback_data="start")
+    settings_buttons = [
+        types.InlineKeyboardButton("Фильтры", callback_data="filters"),
+        types.InlineKeyboardButton("Бюджет", callback_data="budget"),
+    ]
+    keyboard.add(start_button)
+    keyboard.add(*settings_buttons)
+
+    @bot.message_handler(commands=['menu'])
+    def send_menu(message):
+        chat_id = message.chat.id
+        bot.send_message(chat_id, "Меню:", reply_markup=keyboard)
+
+    
     @bot.message_handler(commands=['set_budget'])
     def set_budget(message):
         user_message = message.text
