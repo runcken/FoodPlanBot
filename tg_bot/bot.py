@@ -1,6 +1,6 @@
-import random
 import dotenv
 import os
+import random
 import telebot
 from telebot import types
 
@@ -59,12 +59,20 @@ def toggle_user_preference(chat_id, preference_type):
 
 def get_dish(chat_id):
     user = User.objects.get(chat_id=chat_id)
-    filtered_dishes = Dish.objects.filter(
-        gluten_free=user.gluten_free,
-        vegan=user.vegan,
-        eco=user.eco,
-        price__lte=user.price,
-    )
+    
+    filtered_dishes = Dish.objects.all()
+    
+    # Применяем фильтры только если они включены
+    if user.gluten_free:
+        filtered_dishes = filtered_dishes.filter(gluten_free=True)
+    if user.vegan:
+        filtered_dishes = filtered_dishes.filter(vegan=True)
+    if user.eco:
+        filtered_dishes = filtered_dishes.filter(eco=True)
+    
+    # Фильтр по бюджету
+    filtered_dishes = filtered_dishes.filter(price__lte=user.price)
+    
     if filtered_dishes.exists():
         return random.choice(filtered_dishes)
     else:
@@ -94,9 +102,12 @@ def get_dish_products(dish):
     products_text = "🛒 *Продукты для этого блюда:*\n\n"
     
     for dp in dish_products:
-        products_text += f"• {dp.product.name} - {dp.quantity}г"
-        if dp.note:
-            products_text += f" ({dp.note})"
+        if dp.quantity > 0:
+            products_text += f"• {dp.product.name} - {dp.quantity}г"
+            if dp.note:
+                products_text += f" ({dp.note})"
+        if dp.quantity == 0:
+            products_text += f"• {dp.product.name} - {dp.note}"
         products_text += "\n"
     
     return products_text
@@ -141,7 +152,7 @@ def get_main_menu_keyboard(chat_id):
     
     # Кнопки меню
     budget_button = types.InlineKeyboardButton("💰 Установить бюджет", callback_data="set_budget")
-    filters_button = types.InlineKeyboardButton("⚙️ Фильтры", callback_data="filters")
+    filters_button = types.InlineKeyboardButton("⚙️ Фильтры", callback_data="filters_menu")
     
     # Собираем клавиатуру
     keyboard.add(random_dish_button)
@@ -149,6 +160,45 @@ def get_main_menu_keyboard(chat_id):
     keyboard.add(filters_button)
     
     return keyboard, budget_text
+
+
+def get_filters_menu_keyboard(chat_id):
+    """Создает клавиатуру меню фильтров"""
+    user = User.objects.get(chat_id=str(chat_id))
+    
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    
+    # Кнопки фильтров с текущим состоянием
+    gluten_text = "✅ Без глютена" if user.gluten_free else "❌ Без глютена"
+    vegan_text = "✅ Веганское" if user.vegan else "❌ Веганское"
+    eco_text = "✅ ЭКО" if user.eco else "❌ ЭКО"
+    
+    gluten_button = types.InlineKeyboardButton(gluten_text, callback_data="toggle_gluten")
+    vegan_button = types.InlineKeyboardButton(vegan_text, callback_data="toggle_vegan")
+    eco_button = types.InlineKeyboardButton(eco_text, callback_data="toggle_eco")
+    
+    # Кнопка сброса всех фильтров
+    reset_button = types.InlineKeyboardButton("🔄 Сбросить все фильтры", callback_data="reset_filters")
+    
+    # Кнопка назад
+    back_button = types.InlineKeyboardButton("🔙 Назад в меню", callback_data="main_menu")
+    
+    keyboard.add(gluten_button, vegan_button, eco_button)
+    keyboard.add(reset_button)
+    keyboard.add(back_button)
+    
+    return keyboard
+
+
+def format_filters_status(user):
+    """Форматирует текущий статус фильтров"""
+    status = "⚙️ *Текущие настройки фильтров:*\n\n"
+    status += f"• Без глютена: {'✅ ВКЛ' if user.gluten_free else '❌ ВЫКЛ'}\n"
+    status += f"• Веганское: {'✅ ВКЛ' if user.vegan else '❌ ВЫКЛ'}\n"
+    status += f"• ЭКО: {'✅ ВКЛ' if user.eco else '❌ ВЫКЛ'}\n\n"
+    status += "Нажмите на фильтр, чтобы переключить его состояние."
+    
+    return status
 
 
 # Словарь для хранения состояний пользователей (ожидают ввода бюджета)
@@ -329,7 +379,7 @@ def run():
         # Возвращаем в главное меню
         keyboard, budget_text = get_main_menu_keyboard(chat_id)
         menu_text = f"🍽 *Главное меню*\n\n💰 Текущий бюджет: {budget_text}"
-
+        
         try:
             bot.edit_message_text(
                 chat_id=chat_id,
@@ -343,6 +393,111 @@ def run():
             bot.send_message(
                 chat_id,
                 menu_text,
+                parse_mode='Markdown',
+                reply_markup=keyboard
+            )
+
+    @bot.callback_query_handler(func=lambda call: call.data == "filters_menu")
+    def filters_menu_handler(call: types.CallbackQuery):
+        chat_id = call.message.chat.id
+        user = User.objects.get(chat_id=str(chat_id))
+        
+        filters_status = format_filters_status(user)
+        keyboard = get_filters_menu_keyboard(chat_id)
+        
+        try:
+            bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=call.message.message_id,
+                text=filters_status,
+                parse_mode='Markdown',
+                reply_markup=keyboard
+            )
+        except Exception as e:
+            print(f"Error editing message: {e}")
+            bot.send_message(
+                chat_id,
+                filters_status,
+                parse_mode='Markdown',
+                reply_markup=keyboard
+            )
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("toggle_"))
+    def toggle_filter_handler(call: types.CallbackQuery):
+        chat_id = call.message.chat.id
+        filter_type = call.data.split("_")[1]  # toggle_{filter_type}
+        
+        # Определяем поле в модели User по типу фильтра
+        field_map = {
+            "gluten": "gluten_free",
+            "vegan": "vegan",
+            "eco": "eco"
+        }
+        
+        if filter_type in field_map:
+            field_name = field_map[filter_type]
+            new_value = toggle_user_preference(chat_id, field_name)
+            
+            # Обновляем сообщение с фильтрами
+            user = User.objects.get(chat_id=str(chat_id))
+            filters_status = format_filters_status(user)
+            keyboard = get_filters_menu_keyboard(chat_id)
+            
+            # Добавляем сообщение об изменении
+            filter_names = {
+                "gluten": "Без глютена",
+                "vegan": "Веганское", 
+                "eco": "ЭКО"
+            }
+            
+            status_text = "✅ ВКЛ" if new_value else "❌ ВЫКЛ"
+            action_message = f"Фильтр '{filter_names[filter_type]}' теперь {status_text}"
+            
+            try:
+                bot.edit_message_text(
+                    chat_id=chat_id,
+                    message_id=call.message.message_id,
+                    text=f"{filters_status}\n\n{action_message}",
+                    parse_mode='Markdown',
+                    reply_markup=keyboard
+                )
+            except Exception as e:
+                print(f"Error editing message: {e}")
+                bot.send_message(
+                    chat_id,
+                    f"{filters_status}\n\n{action_message}",
+                    parse_mode='Markdown',
+                    reply_markup=keyboard
+                )
+
+    @bot.callback_query_handler(func=lambda call: call.data == "reset_filters")
+    def reset_filters_handler(call: types.CallbackQuery):
+        chat_id = call.message.chat.id
+        
+        # Сбрасываем все фильтры
+        user = User.objects.get(chat_id=str(chat_id))
+        user.gluten_free = False
+        user.vegan = False
+        user.eco = False
+        user.save()
+        
+        # Обновляем сообщение с фильтрами
+        filters_status = format_filters_status(user)
+        keyboard = get_filters_menu_keyboard(chat_id)
+        
+        try:
+            bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=call.message.message_id,
+                text=f"{filters_status}\n\n✅ Все фильтры сброшены!",
+                parse_mode='Markdown',
+                reply_markup=keyboard
+            )
+        except Exception as e:
+            print(f"Error editing message: {e}")
+            bot.send_message(
+                chat_id,
+                f"{filters_status}\n\n✅ Все фильтры сброшены!",
                 parse_mode='Markdown',
                 reply_markup=keyboard
             )
@@ -412,11 +567,10 @@ def run():
 
     @bot.callback_query_handler(func=lambda call: True)
     def callback_query(call: types.CallbackQuery):
+        # Этот обработчик теперь обрабатывает только оставшиеся callback_data
         chat_id = call.message.chat.id
         if call.data == "budget":
             check_budget(call.message)
-        elif call.data == "filters":
-            bot.send_message(chat_id, "⚙️ Настройки фильтров будут доступны скоро!")
 
     @bot.message_handler(commands=['set_budget'])
     def set_budget_command(message: types.Message):
@@ -426,7 +580,7 @@ def run():
         if not user_input:
             # Если бюджет не указан, переходим в режим ввода
             set_budget_handler(type('Callback', (), {'message': type('Message', (), {'chat': type('Chat', (), {'id': chat_id})})})())
-        return
+            return
         
         # Проверяем ввод
         try:
@@ -457,6 +611,21 @@ def run():
             bot.send_message(chat_id, f"✅ Ваш бюджет не ограничен. {const_part}", parse_mode='HTML')
             return
         bot.send_message(chat_id, f"💰 Ваш бюджет составляет {budget} рублей. {const_part}", parse_mode='HTML')
+
+    @bot.message_handler(commands=['filters'])
+    def show_filters_command(message: types.Message):
+        chat_id = message.chat.id
+        user = User.objects.get(chat_id=str(chat_id))
+        
+        filters_status = format_filters_status(user)
+        keyboard = get_filters_menu_keyboard(chat_id)
+        
+        bot.send_message(
+            chat_id,
+            filters_status,
+            parse_mode='Markdown',
+            reply_markup=keyboard
+        )
 
     error_message = "❌ Извините, я вас не понял 😔 Пожалуйста, используйте кнопки меню или введите команду /menu."
 
