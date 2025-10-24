@@ -16,15 +16,17 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(Dish)
 class DishAdmin(admin.ModelAdmin):
-    list_display = ['title', 'price', 'gluten_free', 'vegan', 'eco']
+    list_display = ['image_preview', 'title', 'price', 'gluten_free', 'vegan', 'eco']
+    list_display_links = ('image_preview', 'title')
     list_filter = ['gluten_free', 'vegan', 'eco',]
     search_fields = ['title', 'description',]
     inlines = (DishProductInline,)
     readonly_fields = ['price', 'image_preview']
+    fields = ('title', 'description', "recipe", 'image', 'image_preview', 'vegan', 'eco', 'gluten_free', 'price')
     
     def image_preview(self, obj):
         if obj.image:
-            return format_html('<img src="{}" width="100" />', obj.image.url)
+            return format_html('<img src="{}" width="200" />', obj.image.url)
         return "Нет изображения"
     image_preview.short_description = "Фото"
 
